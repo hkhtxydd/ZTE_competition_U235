@@ -3,70 +3,10 @@
 
 using namespace std;
 
-struct st_rule
-{
-	unsigned char source_ip_0;
-	unsigned char source_ip_1;
-	unsigned char source_ip_2;
-	unsigned char source_ip_3;
-	unsigned int  source_ip_mask;
-
-	unsigned char destination_ip_0;
-	unsigned char destination_ip_1;
-	unsigned char destination_ip_2;
-	unsigned char destination_ip_3;
-	unsigned int  destination_ip_mask;
-
-	unsigned int  source_port_begin;
-	unsigned int  source_port_end;
 
 
-	unsigned int  destination_port_begin;
-	unsigned int  destination_port_end;
 
-	unsigned int  protocol;
-	unsigned int  protocol_mask;
 
-	unsigned int  protocol_type;
-
-	
-
-};
-
-void SplitString(const string& s, vector<string>& v, const string& c)
-{
-
-	string::size_type pos1, pos2;
-	pos2 = s.find(c);
-	pos1 = 0;
-	while (string::npos != pos2)
-	{
-		v.push_back(s.substr(pos1, pos2 - pos1));
-
-		pos1 = pos2 + c.size();
-		pos2 = s.find(c, pos1);
-	}
-	if (pos1 != s.length())
-		v.push_back(s.substr(pos1));
-}
-
-void str2int_IpAndMask(
-	const string& s,
-	unsigned char & ip_0,
-	unsigned char & ip_1,
-	unsigned char & ip_2,
-	unsigned char & ip_3,
-	unsigned int & Mask) {
-	vector<string> tmp_1;
-	SplitString(s, tmp_1, "/");
-	vector<string> tmp_2;
-	SplitString(tmp_1[0],tmp_2, ".");
-	ip_0 = (unsigned char)stoi(tmp_2[0]);
-	ip_1 = (unsigned char)stoi(tmp_2[1]);
-	ip_2 = (unsigned char)stoi(tmp_2[2]);
-	ip_3 = (unsigned char)stoi(tmp_2[3]);
-	Mask= (unsigned int)stoi(tmp_1[1]);
-}
 
 void str2int_Port(
 	const string& s,
