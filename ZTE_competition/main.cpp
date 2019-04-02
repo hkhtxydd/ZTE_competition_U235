@@ -10,15 +10,10 @@
 #include <string>
 #include <algorithm>
 
-using namespace std;
 
-#define inputDataFile ("../testData/int_1.txt")
+#define inputDataFile ("../testData/in.txt")
 
 #define outputDataFile ("../testData/myout.txt")
-
-typedef unsigned int UINT32;
-typedef unsigned short UINT16;
-typedef unsigned char UINT8;
 
 ifstream inFile;
 ofstream outFile;
@@ -71,7 +66,7 @@ void str2int_IpAndMask(
 	SplitString(tmp_1[0], tmp_2, ".");
 	ip = (((UINT32)(stoi(tmp_2[0]))) << 24) + (((UINT32)(stoi(tmp_2[1]))) << 16) + (((UINT32)(stoi(tmp_2[2]))) << 8) + (UINT32)(stoi(tmp_2[3]));
 
-	int source_MASK = INT_MAX;
+	UINT32 source_MASK = 0xffffffff;
 	ip_mask = source_MASK << (32 - stoi(tmp_1[1]));
 
 }
@@ -88,22 +83,21 @@ void str2int_protocol(
 }
 
 void rule2dataAndMask(st_rule * oneRule) {
-	int i, j;
 
-			myStreamOut << "data:";
-			myStreamOut << "0x" << hex << oneRule->destination_ip << " ";
-			myStreamOut << "0x" << hex << oneRule->source_ip << " ";
-			myStreamOut << "0x" << hex << oneRule->destination_port<< " ";
-			myStreamOut << "0x" << hex << oneRule->source_port << " ";
-			myStreamOut << "0x" << hex << (UINT32)(oneRule->protocol) << " ";
-			myStreamOut << dec << oneRule->type << endl;
+	myStreamOut << "data:";
+	myStreamOut << "0x" << hex << oneRule->destination_ip << " ";
+	myStreamOut << "0x" << hex << oneRule->source_ip << " ";
+	myStreamOut << "0x" << hex << oneRule->destination_port << " ";
+	myStreamOut << "0x" << hex << oneRule->source_port << " ";
+	myStreamOut << "0x" << hex << (UINT32)(oneRule->protocol) << " ";
+	myStreamOut << dec << oneRule->type << "\n";
 
-			myStreamOut << "mask:";
-			myStreamOut << "0x" << hex << oneRule->destination_ip_mask << " ";
-			myStreamOut << "0x" << hex << oneRule->source_ip_mask << " ";
-			myStreamOut << "0x" << hex << oneRule->destination_port_mask << " ";
-			myStreamOut << "0x" << hex << oneRule->source_port_mask << " ";
-			myStreamOut << endl;
+	myStreamOut << "mask:";
+	myStreamOut << "0x" << hex << oneRule->destination_ip_mask << " ";
+	myStreamOut << "0x" << hex << oneRule->source_ip_mask << " ";
+	myStreamOut << "0x" << hex << oneRule->destination_port_mask << " ";
+	myStreamOut << "0x" << hex << oneRule->source_port_mask<< " ";
+	myStreamOut << "0xff" << "\n";
 
 }
 
@@ -130,10 +124,8 @@ int main()
 {
 	int i, j, k;
 
-	inFile.open( inputDataFile );
+	inFile.open(inputDataFile);
 	outFile.open(outputDataFile);
-
-
 
 	vector<string> rule_str;
 	string rule_number_str;
@@ -160,7 +152,7 @@ int main()
 	vector<st_rule * > rules;
 
 	for (i = 0; i < rule_number; i++) {
-		cout << "RULE:\t" << i << endl;
+
 		UINT32 destination_ip;
 		UINT32 destination_ip_mask;
 		UINT32 source_ip;
@@ -203,16 +195,16 @@ int main()
 			vector<st_port_mask*>  destination_port_mask_vector;
 			vector<st_port_mask*>  source_port_mask_vector;
 
-			if (destination_port_begin == destination_port_end){
+			if (destination_port_begin == destination_port_end) {
 				st_port_mask* port_mask = new st_port_mask;
 				port_mask->mask = 0xffff;
 				port_mask->port = destination_port_begin;
 				destination_port_mask_vector.push_back(port_mask);
 			}
-			else{
-				m_main(destination_port_begin, destination_port_end, destination_port_mask_vector);
+			else {
+				Simplify(destination_port_mask_vector, destination_port_begin, destination_port_end);
 			}
-			
+
 			if (source_port_begin == source_port_end) {
 				st_port_mask* port_mask = new st_port_mask;
 				port_mask->mask = 0xffff;
@@ -220,7 +212,7 @@ int main()
 				source_port_mask_vector.push_back(port_mask);
 			}
 			else {
-				m_main(source_port_begin, source_port_end, source_port_mask_vector);
+				Simplify(source_port_mask_vector, source_port_begin, source_port_end);
 			}
 
 			for (j = 0; j < destination_port_mask_vector.size(); j++) {
@@ -245,7 +237,6 @@ int main()
 			}
 		}
 	}
-	cout << "DONE" << endl;
 
 	vector<st_message * > messages;
 
@@ -264,7 +255,7 @@ int main()
 	}
 
 	//输出规则
-	myStreamOut << "32 32 16 16 8 8" << endl;
+	myStreamOut << "32 32 16 16 8 " << rules.size() << "\n";
 	for (i = 0; i < rules.size(); i++) {
 		rule2dataAndMask(rules[i]);
 	}
@@ -272,25 +263,32 @@ int main()
 
 	for (i = 0; i < message_number; i++) {
 		st_message * oneMessage = messages[i];
-		for (j = 0; j < rule_number; j++) {
+		for (j = 0; j < rules.size(); j++) {
 			st_rule * oneRule = rules[j];
 			st_message result;
 
 			result.destination_ip = ((oneMessage->destination_ip) ^ (oneRule->destination_ip))&(oneRule->destination_ip_mask);
 			result.source_ip = ((oneMessage->source_ip) ^ (oneRule->source_ip))&(oneRule->source_ip_mask);
 
-			result.destination_port= ((oneMessage->destination_port) ^ (oneRule->destination_port))&(oneRule->destination_port_mask);
+			result.destination_port = ((oneMessage->destination_port) ^ (oneRule->destination_port))&(oneRule->destination_port_mask);
 			result.source_port = ((oneMessage->source_port) ^ (oneRule->source_port))&(oneRule->source_port_mask);
 
-			result.protocol = oneMessage->protocol ^ oneRule->protocol;
+			result.protocol = (oneMessage->protocol) ^ (oneRule->protocol);
 
-			if(result.destination_ip+ result.source_ip+ result.destination_port+ result.source_port + result.protocol==0) {
-				j = rule_number + 1;
-				myStreamOut << dec << oneRule->type << endl;
+			if (result.destination_ip + result.source_ip + result.destination_port + result.source_port + result.protocol == 0) {
+				j = rules.size() + 1;
+				myStreamOut << dec << oneRule->type << "\n";
 			}
 		}
-		if (j == rule_number) {
-			myStreamOut << 0 << endl;
+		if (j == rules.size()) {
+			myStreamOut << dec << 0 << "\n";
+			/*
+			myStreamOut << "\t" << (((oneMessage->destination_ip) & 0xff000000) >> 24) << "." <<
+				(((oneMessage->destination_ip) & 0x00ff0000)>>16)<< "." <<
+				(((oneMessage->destination_ip) & 0x0000ff00)>>8)<< "." <<
+				((oneMessage->destination_ip) & 0x000000ff)<<endl;
+			*/
+
 		}
 
 	}

@@ -1,9 +1,12 @@
 #pragma once
 
+/*
 #include <iostream>
 #include <vector>
 #include <string>
 #include <algorithm>
+
+
 
 struct st_port_mask
 {
@@ -263,5 +266,82 @@ int m_main(int m_begin, int m_end, vector<st_port_mask*> & port_mask_vector) {
 		port_mask_vector.push_back(port_mask);
 	}
 
+	return 0;
+}
+
+*/
+
+#include <iostream>
+#include <vector>
+#include <string>
+#include <algorithm>
+
+using namespace std;
+
+typedef unsigned int UINT32;
+typedef unsigned short UINT16;
+typedef unsigned char UINT8;
+
+struct st_port_mask
+{
+	unsigned short port;
+	unsigned short mask;
+};
+
+int Simplify(vector<st_port_mask *> & result, UINT16 m_begin, UINT16 m_end) {
+
+	UINT16 shift = 0x01;
+	auto portTmp = m_begin;
+	auto masktTmp = (unsigned short)0xffff;
+
+	UINT16 TMP = portTmp | (~masktTmp);
+
+	auto Result_subTop = new st_port_mask;
+
+	while (TMP <= m_end) {
+
+		auto Result_1 = new st_port_mask;
+		Result_1->port = portTmp;
+		Result_1->mask = masktTmp;
+		result.push_back(Result_1);
+
+		Result_subTop->port = portTmp | (~masktTmp);
+		Result_subTop->mask = masktTmp;
+
+		portTmp = shift + portTmp;
+		shift = shift << 1;
+		masktTmp = masktTmp << 1;
+		TMP = portTmp | (~masktTmp);
+	}
+
+
+	/////////////////////////
+	shift = 0x01;
+	portTmp = m_end;
+	masktTmp = (unsigned short)0xffff;
+
+	TMP = portTmp | (~masktTmp);
+
+	while (TMP > Result_subTop->port) {
+
+		auto Result_1 = new st_port_mask;
+		Result_1->port = portTmp;
+		Result_1->mask = masktTmp;
+		result.push_back(Result_1);
+
+		portTmp = portTmp - shift;
+		shift = shift << 1;
+		masktTmp = masktTmp << 1;
+		TMP = portTmp | (~masktTmp);
+	}
+
+
+
+	for (int i = 0; i < result.size(); i++) {
+		//cout << "0x" << hex << result[i]->port << endl;
+		//cout << "0x" << hex << result[i]->mask << endl;
+	}
+
+	//system("pause");
 	return 0;
 }
