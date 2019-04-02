@@ -1,0 +1,52 @@
+#include <iostream>
+#include <vector>
+#include <string>
+#include <algorithm>
+
+using namespace std;
+
+typedef unsigned int UINT32;
+typedef unsigned short UINT16;
+typedef unsigned char UINT8;
+
+struct st_port_mask
+{
+	unsigned short port;
+	unsigned short mask;
+};
+
+
+int main() {
+	UINT16 m_begin=3;
+	UINT16 m_end=6;
+
+	vector<st_port_mask *> result;
+
+	
+
+	UINT16 shift = 0x01;
+	auto portTmp = m_begin;
+	auto masktTmp = (unsigned short)0xffff;
+
+	UINT16 TMP = portTmp | (~masktTmp);
+
+	while ( TMP < m_end   ) {
+		auto Result_1 = new st_port_mask;
+		Result_1->port = portTmp;
+		Result_1->mask = masktTmp;
+		result.push_back(Result_1);
+
+		portTmp = shift + portTmp;
+		shift = shift << 1;
+		masktTmp = masktTmp << 1;
+		TMP = portTmp | (~masktTmp);
+	}
+
+	for (int i = 0; i < result.size(); i++) {
+		cout <<hex<< result[i]->port << endl;
+		cout <<hex<< result[i]->mask << endl;
+	}
+
+	system("pause");
+
+}
