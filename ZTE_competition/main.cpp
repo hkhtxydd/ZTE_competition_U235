@@ -41,6 +41,66 @@ struct st_port_mask
 	UINT16 mask;
 };
 
+UINT8 findOne(UINT16 num) {
+	for (UINT8 i = 0; i < 16; i++)
+	{
+		if ((num&(0x0001 << i)) != 0)
+			return i;
+	}
+}
+
+
+
+int Simplify(vector<st_port_mask *> & result, UINT16 m_begin, UINT16 m_end) {
+
+	UINT16 shift = 0x01;
+	auto portTmp = m_begin;
+	auto masktTmp = (unsigned short)0xffff;
+
+	UINT16 TMP = portTmp | (~masktTmp);
+
+	auto Result_subTop = new st_port_mask;
+
+	while (TMP <= m_end) {
+
+		auto Result_1 = new st_port_mask;
+		Result_1->port = portTmp;
+		Result_1->mask = masktTmp;
+		result.push_back(Result_1);
+
+		Result_subTop->port = portTmp | (~masktTmp);
+		Result_subTop->mask = masktTmp;
+
+		portTmp = shift + portTmp;
+		shift = shift << 1;
+		masktTmp = masktTmp << 1;
+		TMP = portTmp | (~masktTmp);
+	}
+
+
+	/////////////////////////
+	shift = 0x01;
+	portTmp = m_end;
+	masktTmp = (unsigned short)0xffff;
+
+	TMP = portTmp | (~masktTmp);
+
+	while (TMP > Result_subTop->port) {
+
+		auto Result_1 = new st_port_mask;
+		Result_1->port = portTmp;
+		Result_1->mask = masktTmp;
+		result.push_back(Result_1);
+
+		portTmp = portTmp - shift;
+		shift = shift << 1;
+		masktTmp = masktTmp << 1;
+		TMP = portTmp | (~masktTmp);
+	}
+	return 0;
+}
+
+
 
 int Simplify_2(vector<st_port_mask *> & result, UINT16 m_begin, UINT16 m_end) {
 
@@ -119,7 +179,7 @@ int Simplify_2(vector<st_port_mask *> & result, UINT16 m_begin, UINT16 m_end) {
 
 	{
 		int i, j, k;
-		
+
 		for (i = 1; i < result_0.size(); i++) {
 			int FLAG = 1;
 			for (j = 0; j < result.size(); j++) {
@@ -134,7 +194,7 @@ int Simplify_2(vector<st_port_mask *> & result, UINT16 m_begin, UINT16 m_end) {
 				}
 				else if (((result_0[i]->mask) > (result[j]->mask))) {
 					if ((result[j]->mask)& (result[j]->port) == (result[j]->mask)& (result_0[i]->port)) {
-						
+
 						FLAG = false;
 						break;
 					}
@@ -245,55 +305,60 @@ int Simplify_3(vector<st_port_mask *> & result, UINT16 m_begin, UINT16 m_end) {
 }
 
 
-int Simplify(vector<st_port_mask *> & result, UINT16 m_begin, UINT16 m_end) {
-
-	UINT16 shift = 0x01;
-	auto portTmp = m_begin;
-	auto masktTmp = (unsigned short)0xffff;
-
-	UINT16 TMP = portTmp | (~masktTmp);
-
-	auto Result_subTop = new st_port_mask;
-
-	while (TMP <= m_end) {
-
-		auto Result_1 = new st_port_mask;
-		Result_1->port = portTmp;
-		Result_1->mask = masktTmp;
-		result.push_back(Result_1);
-
-		Result_subTop->port = portTmp | (~masktTmp);
-		Result_subTop->mask = masktTmp;
-
-		portTmp = shift + portTmp;
-		shift = shift << 1;
-		masktTmp = masktTmp << 1;
-		TMP = portTmp | (~masktTmp);
+void Simplify_4(vector<st_port_mask*> & result, UINT16 m_begin, UINT16 m_end) {
+	bool T = true;
+	UINT16 port;
+	UINT16 mask;
+	UINT16 shift;
+	UINT16 currentMax;
+	UINT16 currentMin;
+	if (m_begin == 0) {
+		m_begin = 1;
+		st_port_mask* pm = new st_port_mask;
+		pm->port = 0;
+		pm->mask = 0xffff;
 	}
 
+	port = m_begin;
+	mask = 0xffff;
+	shift = 0x0001;
 
-	/////////////////////////
-	shift = 0x01;
-	portTmp = m_end;
-	masktTmp = (unsigned short)0xffff;
-
-	TMP = portTmp | (~masktTmp);
-
-	while (TMP > Result_subTop->port) {
-
-		auto Result_1 = new st_port_mask;
-		Result_1->port = portTmp;
-		Result_1->mask = masktTmp;
-		result.push_back(Result_1);
-
-		portTmp = portTmp - shift;
-		shift = shift << 1;
-		masktTmp = masktTmp << 1;
-		TMP = portTmp | (~masktTmp);
+	while ((port&(~mask)) == 0) {
+		mask = mask << 1;
 	}
-	return 0;
+	mask = (mask >> 1) + 0x8000;
+
+	currentMax = port | (~mask);
+	currentMin = port & mask;
+
+	while (T) {
+		T = false;
+		while ((currentMax <= m_end) && (currentMin >= m_begin)) {
+			st_port_mask* pm = new st_port_mask;
+			pm->port = port;
+			pm->mask = mask;
+			result.push_back(pm);
+			port = currentMax + 1;
+			mask = 0xffff << findOne(port);
+			T = true;
+
+			currentMax = port | (~mask);
+			currentMin = port & mask;
+		}
+
+
+		while (currentMax > m_end) {
+			port = currentMin & mask;
+			mask = (mask >> 1) + 0x8000;
+			currentMax = port | (~mask);
+			currentMin = port & mask;
+			if (currentMax == currentMin)
+				break;
+		}
+
+	}
+
 }
-
 
 
 
@@ -464,7 +529,7 @@ int main()
 				destination_port_mask_vector.push_back(port_mask);
 			}
 			else {
-				Simplify_2(destination_port_mask_vector, destination_port_begin, destination_port_end);
+				Simplify_4(destination_port_mask_vector, destination_port_begin, destination_port_end);
 			}
 
 			if (source_port_begin == source_port_end) {
@@ -474,7 +539,7 @@ int main()
 				source_port_mask_vector.push_back(port_mask);
 			}
 			else {
-				Simplify_2(source_port_mask_vector, source_port_begin, source_port_end);
+				Simplify_4(source_port_mask_vector, source_port_begin, source_port_end);
 			}
 
 			for (j = 0; j < destination_port_mask_vector.size(); j++) {
